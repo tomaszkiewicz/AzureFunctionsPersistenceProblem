@@ -1,4 +1,6 @@
 {
+  "scriptFile": "bin\\Bot.dll",
+  "entryPoint": "Bot.Runner.Run",
   "bindings": [
     {
       "type": "httpTrigger",
