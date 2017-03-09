@@ -1,14 +1,16 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Threading;
+using System.Reflection;
+using System.Runtime.Serialization;
 using System.Threading.Tasks;
-using Microsoft.Bot.Builder.Azure;
+using Autofac;
 using Microsoft.Bot.Builder.Dialogs;
+using Microsoft.Bot.Builder.History;
 using Microsoft.Bot.Connector;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Bot
 {
@@ -16,19 +18,32 @@ namespace Bot
     {
         public static async Task<object> Run(HttpRequestMessage req)
         {
+            var currentDirectory = new FileInfo((new Uri(Assembly.GetExecutingAssembly().CodeBase).AbsolutePath)).DirectoryName;
+
+            Directory.SetCurrentDirectory(currentDirectory);
+
+            var builder = new ContainerBuilder();
+
+            builder.RegisterType<TraceActivityLogger>().As<IActivityLogger>();
+
+            //builder.RegisterType<JsonSerializer>().As<IFormatter>();
+            builder.RegisterType<MySerializer>().As<IFormatter>();
+
+            builder.Update(Conversation.Container);
+
             // Initialize the azure bot
-            using (BotService.Initialize())
+            //using (BotService.Initialize())
             {
                 // Deserialize the incoming activity
                 string jsonContent = await req.Content.ReadAsStringAsync();
                 var activity = JsonConvert.DeserializeObject<Activity>(jsonContent);
 
-                // authenticate incoming request and add activity.ServiceUrl to MicrosoftAppCredentials.TrustedHostNames
-                // if request is authenticated
-                if (!await BotService.Authenticator.TryAuthenticateAsync(req, new[] {activity}, CancellationToken.None))
-                {
-                    return BotAuthenticator.GenerateUnauthorizedResponse(req);
-                }
+                //// authenticate incoming request and add activity.ServiceUrl to MicrosoftAppCredentials.TrustedHostNames
+                //// if request is authenticated
+                //if (!await BotService.Authenticator.TryAuthenticateAsync(req, new[] {activity}, CancellationToken.None))
+                //{
+                //    return BotAuthenticator.GenerateUnauthorizedResponse(req);
+                //}
 
                 if (activity != null)
                 {
@@ -58,15 +73,15 @@ namespace Bot
                             }
                             break;
                         case ActivityTypes.Trigger:
-                            // handle proactive Message from function
-                            ITriggerActivity trigger = activity;
-                            var message = JsonConvert.DeserializeObject<Message>(((JObject) trigger.Value).GetValue("Message").ToString());
-                            var messageactivity = (Activity) message.ResumptionCookie.GetMessage();
+                            //// handle proactive Message from function
+                            //ITriggerActivity trigger = activity;
+                            //var message = JsonConvert.DeserializeObject<Message>(((JObject) trigger.Value).GetValue("Message").ToString());
+                            //var messageactivity = (Activity) message.ResumptionCookie.GetMessage();
 
-                            client = new ConnectorClient(new Uri(messageactivity.ServiceUrl));
-                            var triggerReply = messageactivity.CreateReply();
-                            triggerReply.Text = $"This is coming back from the trigger! {message.Text}";
-                            await client.Conversations.ReplyToActivityAsync(triggerReply);
+                            //client = new ConnectorClient(new Uri(messageactivity.ServiceUrl));
+                            //var triggerReply = messageactivity.CreateReply();
+                            //triggerReply.Text = $"This is coming back from the trigger! {message.Text}";
+                            //await client.Conversations.ReplyToActivityAsync(triggerReply);
                             break;
                         case ActivityTypes.ContactRelationUpdate:
                         case ActivityTypes.Typing:

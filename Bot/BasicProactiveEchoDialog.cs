@@ -1,10 +1,8 @@
 using System;
+using System.Runtime.Serialization;
 using System.Threading.Tasks;
-using Microsoft.Bot.Builder.Azure;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Connector;
-using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Queue;
 
 namespace Bot
 {
@@ -14,6 +12,17 @@ namespace Bot
     {
         protected int count = 1;
 
+        [OnDeserialized]
+        public void OnDeserialized(StreamingContext ctx)
+        {
+            
+        }
+
+        public BasicProactiveEchoDialog()
+        {
+            
+        }
+        
         public Task StartAsync(IDialogContext context)
         {
             context.Wait(MessageReceivedAsync);
@@ -42,7 +51,6 @@ namespace Bot
                 };
 
                 // write the queue Message to the queue
-                //await AddMessageToQueueAsync(JsonConvert.SerializeObject(queueMessage));
 
                 await context.PostAsync($"{this.count++}: You said {queueMessage.Text}. Message added to the queue.");
                 context.Wait(MessageReceivedAsync);
@@ -63,25 +71,5 @@ namespace Bot
             }
             context.Wait(MessageReceivedAsync);
         }
-
-        public static async Task AddMessageToQueueAsync(string message)
-        {
-            // Retrieve storage account from connection string.
-            var storageAccount = CloudStorageAccount.Parse(Utils.GetAppSetting("AzureWebJobsStorage"));
-
-            // Create the queue client.
-            var queueClient = storageAccount.CreateCloudQueueClient();
-
-            // Retrieve a reference to a queue.
-            var queue = queueClient.GetQueueReference("bot-queue");
-
-            // Create the queue if it doesn't already exist.
-            await queue.CreateIfNotExistsAsync();
-
-            // Create a message and add it to the queue.
-            var queuemessage = new CloudQueueMessage(message);
-            await queue.AddMessageAsync(queuemessage);
-        }
     }
-
 }
